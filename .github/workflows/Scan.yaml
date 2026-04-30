@@ -7,29 +7,40 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # 1. Login l Azure (Hna kankhdmo b l-User dyal l-lab)
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: |
+            {
+              "clientId": "${{ secrets.AZURE_USER_NAME }}",
+              "clientSecret": "${{ secrets.AZURE_PASSWORD }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
+            }
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # STEP 1: Security Audit
+      # 2. Security Audit (Checkov)
       - name: Checkov Scan
         uses: bridgecrewio/checkov-action@master
         with:
           directory: .
           framework: terraform
 
-      # STEP 2: Terraform Init & Plan
+      # 3. Terraform Init & Plan
       - name: Terraform Init
         run: terraform init
+        env:
+          ARM_USE_CLI: true  # <--- Hada hwa l-muftā7
 
       - name: Terraform Plan
         run: terraform plan
+        env:
+          ARM_USE_CLI: true  # <--- Hada hwa l-muftā7
