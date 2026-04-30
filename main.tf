@@ -1,30 +1,49 @@
-# Kan-jibou l-RG li déja mcreyi f l-Portal (Read-Only)
-data "azurerm_resource_group" "example" {
-  name = "1-ce68537d-playground-sandbox" 
-}
+name: "Terraform-CI"
 
-# Daba ay 7ajja jdid (VNet, NSG) ghadi t-creya wast dak l-RG
-resource "azurerm_virtual_network" "main" {
-  name                = "vnet-prod-casa"
-  address_space       = ["10.0.0.0/16"]
-  location            = data.azurerm_resource_group.example.location
-  resource_group_name = data.azurerm_resource_group.example.name
-}
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
 
-resource "azurerm_network_security_group" "security" {
-  name                = "nsg-prod"
-  location            = data.azurerm_resource_group.example.location
-  resource_group_name = data.azurerm_resource_group.example.name
+jobs:
+  terraform:
+    name: "Terraform Deploy"
+    runs-on: ubuntu-latest
 
-  security_rule {
-    name                       = "AllowSSH"
-    priority                   = 100
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*" # Reddah '*' bach Checkov i-viriha 100%
-    destination_address_prefix = "*"
-  }
-}
+    steps:
+      # 1. Checkout l-code dyalk mn GitHub
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Azure CLI Login (Tariqa li kakhdem f Sandboxes)
+      # Khass t-koun m3mmer AZURE_USER_NAME o AZURE_PASSWORD f l-Secrets
+      - name: Azure CLI Login
+        run: |
+          az login -u "${{ secrets.AZURE_USER_NAME }}" -p "${{ secrets.AZURE_PASSWORD }}" --tenant "${{ secrets.AZURE_TENANT_ID }}"
+          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+
+      # 3. Setup Terraform wast l-Runner
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # 4. Security Scan b Checkov (Shift Left Security)
+      # Ghadi i-detecti l-port 22 m7lou7 li derti f main.tf
+      - name: Checkov Scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          soft_fail: true # Khllih true ila bghiti l-Plan i-douz wakha kyn risk
+
+      # 5. Terraform Init
+      - name: Terraform Init
+        run: terraform init
+        env:
+          ARM_USE_CLI: true # Darouri bach Terraform i-st3mel l-context d az login
+
+      # 6. Terraform Plan
+      - name: Terraform Plan
+        run: terraform plan
+        env:
+          ARM_USE_CLI: true
