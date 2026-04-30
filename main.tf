@@ -1,22 +1,20 @@
-# Hna kandirou l-Resource Group li déjà 3ndek f l-image
-resource "azurerm_resource_group" "example" {
-  name     = "1-489a8467-playground-sandbox" # Smit l-RG li f l-image
-  location = "East US"                       # L-location li f l-image
+# Kan-jibou l-RG li déja mcreyi f l-Portal (Read-Only)
+data "azurerm_resource_group" "example" {
+  name = "1-489a8467-playground-sandbox" 
 }
 
-# VNet wast dak l-Resource Group
+# Daba ay 7ajja jdid (VNet, NSG) ghadi t-creya wast dak l-RG
 resource "azurerm_virtual_network" "main" {
   name                = "vnet-prod-casa"
   address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
+  location            = data.azurerm_resource_group.example.location
+  resource_group_name = data.azurerm_resource_group.example.name
 }
 
-# NSG m3a l-ghalta d Port 22 bach i-detectiha Checkov
 resource "azurerm_network_security_group" "security" {
   name                = "nsg-prod"
-  location            = azurerm_resource_group.example.location
-  resource_group_name = azurerm_resource_group.example.name
+  location            = data.azurerm_resource_group.example.location
+  resource_group_name = data.azurerm_resource_group.example.name
 
   security_rule {
     name                       = "AllowSSH"
@@ -26,7 +24,7 @@ resource "azurerm_network_security_group" "security" {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "22"
-    source_address_prefix      = "41.251.42.30" # <--- HADI HIA L-GHALTA L-MA9SOUDA
+    source_address_prefix      = "*" # Reddah '*' bach Checkov i-viriha 100%
     destination_address_prefix = "*"
   }
 }
