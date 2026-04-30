@@ -3,8 +3,6 @@ name: "Terraform-CI"
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
   terraform:
@@ -12,38 +10,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout l-code dyalk mn GitHub
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Azure CLI Login (Tariqa li kakhdem f Sandboxes)
-      # Khass t-koun m3mmer AZURE_USER_NAME o AZURE_PASSWORD f l-Secrets
-      - name: Azure CLI Login
-        run: |
-          az login -u "${{ secrets.AZURE_USER_NAME }}" -p "${{ secrets.AZURE_PASSWORD }}" --tenant "${{ secrets.AZURE_TENANT_ID }}"
-          az account set --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+      # Login b l-Application Client ID (MFA-Safe)
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # 3. Setup Terraform wast l-Runner
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      # 4. Security Scan b Checkov (Shift Left Security)
-      # Ghadi i-detecti l-port 22 m7lou7 li derti f main.tf
       - name: Checkov Scan
         uses: bridgecrewio/checkov-action@master
         with:
           directory: .
           framework: terraform
-          soft_fail: true # Khllih true ila bghiti l-Plan i-douz wakha kyn risk
+          soft_fail: true
 
-      # 5. Terraform Init
       - name: Terraform Init
         run: terraform init
         env:
-          ARM_USE_CLI: true # Darouri bach Terraform i-st3mel l-context d az login
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
-      # 6. Terraform Plan
       - name: Terraform Plan
         run: terraform plan
         env:
-          ARM_USE_CLI: true
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
