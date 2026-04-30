@@ -1,6 +1,6 @@
 # Kan-jibou l-RG li déja mcreyi f l-Portal (Read-Only)
 data "azurerm_resource_group" "example" {
-  name = "1-489a8467-playground-sandbox" 
+  name = "1-ce68537d-playground-sandbox" 
 }
 
 # Daba ay 7ajja jdid (VNet, NSG) ghadi t-creya wast dak l-RG
